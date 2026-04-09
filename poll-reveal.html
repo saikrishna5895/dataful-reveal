@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poll Reveal | Dataful - Precision Data</title>
+    <!-- Technical Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Source+Code+Pro:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #9b0047;
+            --bg-canvas: #f3f7f9;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-tech: #cbd5e1;
+            --transition-sharp: 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'EB Garamond', serif; 
+            background-color: var(--bg-canvas); 
+            color: var(--text-main); 
+            line-height: 1.6;
+            background-image: radial-gradient(var(--border-tech) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        .mono { font-family: 'Source Code Pro', monospace; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; }
+
+        /* --- Shared Utils --- */
+        .btn { padding: 1rem 2rem; border-radius: 0; font-weight: 900; cursor: pointer; border: none; font-family: 'Source Code Pro', monospace; text-transform: uppercase; }
+        .btn-primary { background: var(--text-main); color: white; }
+        .btn-primary:hover { background: var(--brand-primary); }
+        .btn-outline { background: transparent; border: 1px solid var(--text-main); color: var(--text-main); }
+        input, select, textarea { width: 100%; padding: 1rem; border: 1px solid var(--border-tech); border-radius: 0; font-family: inherit; font-size: 1rem; background: var(--bg-canvas); }
+        input:focus { outline: 2px solid var(--brand-primary); }
+
+        /* --- Refined Header (User) --- */
+        header.user-header {
+            padding: 1.5rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px dotted var(--border-tech);
+        }
+        .header-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
+        .logo img { height: 55px; transition: 0.3s; }
+        .logo:hover img { transform: scale(1.05); }
+        .header-timer { font-family: 'Source Code Pro', monospace; font-size: 0.75rem; color: var(--brand-primary); font-weight: 900; }
+
+        /* --- Core Layout (User) --- */
+        .container { max-width: 900px; margin: 0 auto; padding: 4rem 2rem; }
+        h1 { font-size: 2.2rem; line-height: 1.2; font-weight: 700; margin-bottom: 1rem; }
+        .figure-label { display: inline-block; border: 1px solid var(--border-tech); padding: 4px 12px; margin-bottom: 2rem; background: rgba(255,255,255,0.7); font-weight: 700; }
+
+        /* --- Poll Results --- */
+        .poll-options { margin-top: 2rem; }
+        .option-figure {
+            display: flex; align-items: center; padding: 1.5rem; border: 1px solid var(--border-tech);
+            background: white; margin-bottom: 1rem; position: relative; transition: 0.3s;
+        }
+        .option-content { font-size: 1.4rem; font-weight: 600; flex-grow: 1; }
+        .option-figure.correct { background: var(--brand-primary); color: white; border-color: var(--brand-primary); box-shadow: 0 10px 40px rgba(155, 0, 71, 0.3); }
+        .option-figure.user-choice::after {
+            content: "[ YOUR VOTE ]"; font-family: 'Source Code Pro', monospace;
+            font-size: 0.65rem; font-weight: 900; margin-left: 1rem; padding: 2px 8px;
+            background: rgba(0,0,0,0.1); border-radius: 2px;
+        }
+
+        .explanation-box { font-size: 1.3rem; max-width: 750px; margin: 3rem 0; line-height: 1.5; color: var(--text-main); }
+        .explanation-box strong { color: var(--brand-primary); }
+
+        .dataset-ref { border-left: 4px solid var(--brand-primary); padding: 1rem 2rem; background: white; margin-bottom: 4rem; }
+        .dataset-link { font-family: 'Source Code Pro', monospace; text-decoration: none; color: var(--brand-primary); font-weight: 900; font-size: 0.8rem; }
+
+        .archives-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 2rem; margin-top: 2rem; }
+        .archive-card { padding: 1.5rem; border: 1px solid var(--border-tech); text-decoration: none; color: inherit; transition: 0.3s; background: var(--bg-canvas); }
+        .archive-card:hover { border-color: var(--brand-primary); transform: translateY(-3px); }
+
+        .bottom-section { background: white; padding: 4rem 2rem; border-top: 2px solid var(--text-main); text-align: center; }
+        
+        .redirect-pill {
+            position: fixed; bottom: 2rem; right: 2rem; background: white; border: 2px solid var(--text-main);
+            padding: 1.5rem; z-index: 1000; box-shadow: 10px 10px 0 rgba(0,0,0,0.05); max-width: 280px;
+        }
+        .btn-abort { background: none; border: 1px solid var(--text-muted); padding: 4px 8px; font-family: monospace; cursor: pointer; margin-top: 10px; width: 100%; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .visible { animation: fadeIn 0.8s var(--transition-sharp) forwards; }
+
+        /* --- Admin Layout --- */
+        .admin-header { margin: 0 auto 3rem; display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; border-bottom: 2px dotted var(--border-tech); padding: 2rem; max-width: 1200px;}
+        .admin-header-meta { display: flex; flex-direction: column; gap: 4px; }
+        .dashboard-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 400px; gap: 3rem; padding: 0 2rem 4rem;}
+        .form-card { background: white; padding: 3rem; border: 1px solid var(--border-tech); box-shadow: 10px 10px 0 var(--border-tech); }
+        .schedule-list { background: white; padding: 2rem; border: 1px solid var(--border-tech); }
+        .form-group { margin-bottom: 2rem; }
+        .label-tech { display: block; font-family: 'Source Code Pro', monospace; font-size: 0.65rem; font-weight: 900; margin-bottom: 0.8rem; color: var(--text-main); text-transform: uppercase; }
+        .options-grid { display: grid; grid-template-columns: 1fr 50px; gap: 15px; align-items: center; margin-bottom: 15px; }
+        .opt-correct { width: 20px; height: 20px; }
+        .poll-item { border-bottom: 1px dotted var(--border-tech); padding: 1.5rem 0; position: relative; }
+        .poll-item .date { font-family: 'Source Code Pro', monospace; font-weight: 900; color: var(--brand-primary); font-size: 0.7rem; }
+        .poll-item .q { font-size: 1.1rem; margin-top: 5px; font-weight: 700; }
+        .delete-btn { position: absolute; top: 1.5rem; right: 0; cursor: pointer; opacity: 0.5; }
+
+        .auth-overlay {
+            position: fixed; inset: 0; background: var(--bg-canvas); z-index: 5000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background-image: radial-gradient(var(--border-tech) 1px, transparent 1px); background-size: 30px 30px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="app-root"></div>
+
+    <!-- TEMPLATE: USER REVEAL -->
+    <template id="tpl-user-view">
+        <header class="user-header">
+            <a href="https://dataful.in" class="logo"><img src="./logo.png" alt="Dataful"></a>
+            <div class="header-right">
+                <div id="nav-streak" class="mono" style="display:none; margin-bottom: 4px;">💎 STREAK: <span id="streak-val">0</span></div>
+                <div class="header-timer">[ NEXT_REVEAL: <span id="next-timer">00:00:00</span> ]</div>
+            </div>
+        </header>
+
+        <div class="container">
+            <article class="visible">
+                <div id="poll-label" class="figure-label mono">[ POLL_REVEAL ]</div>
+                <h1 id="active-q">Loading...</h1>
+                
+                <div id="options-list" class="poll-options"></div>
+
+                <div class="dataset-ref" style="margin-top: 2rem;">
+                    <div class="mono" id="dataset-id" style="font-size: 0.6rem; color: var(--text-muted); margin-bottom: 5px;">DATAFUL_ID: ...</div>
+                    <h3 id="dataset-title" style="font-size: 1.5rem; margin-bottom: 0.5rem;">...</h3>
+                    <a id="dataset-link" href="#" target="_blank" class="dataset-link">VIEW_SOURCE →</a>
+                </div>
+
+                <div id="archives-section" style="margin-top: 4rem;">
+                    <div class="mono" style="margin-bottom: 1rem; font-size: 0.6rem; opacity: 0.6;">[ HISTORICAL_DATA_ARCHIVE ]</div>
+                    <div id="archives-grid" class="archives-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 0;"></div>
+                </div>
+            </article>
+        </div>
+
+        <div class="bottom-section" style="padding: 2rem; border-top: 1px solid var(--border-tech); text-align: center;">
+            <div class="mono" style="opacity: 0.4; font-size: 0.6rem;">© 2026 DATAFUL, A PRODUCT OF FACTLY MEDIA AND RESEARCH</div>
+        </div>
+
+        <div id="redirect-pill" class="redirect-pill mono">
+            <div style="font-weight:900; color:var(--brand-primary);">REDIRECTION_IN_PROGRESS</div>
+            <div style="margin: 8px 0;">AUTO_REDIRECTING IN <span id="timer-val" style="font-weight:900;">30</span>S</div>
+            <button onclick="cancelRedirect()" class="btn-abort mono">STOP_REDIRECTION</button>
+        </div>
+    </template>
+
+    <!-- TEMPLATE: SHADOW AUTH -->
+    <template id="tpl-auth-view">
+        <div class="auth-overlay">
+            <img src="./logo.png" alt="Dataful" style="height: 50px; margin-bottom: 3rem; filter: grayscale(1);">
+            <h2 class="mono">SYSTEM_ADMIN_AUTH</h2>
+            <input type="password" id="admin-pass-input" placeholder="ACCESS_CODE" style="width: 350px; text-align: center; font-family: monospace;">
+            <button class="btn btn-primary" style="width: 350px; margin-top: 1rem;" onclick="verifyShadowToken()">INITIALIZE_DASHBOARD</button>
+        </div>
+    </template>
+
+    <!-- TEMPLATE: ADMIN MODULE -->
+    <template id="tpl-admin-view">
+        <div class="admin-header">
+            <div class="admin-header-meta">
+                <span class="mono">ROLE: SYSTEM_ADMIN</span>
+                <span class="mono">STATUS: ONLINE</span>
+            </div>
+            <a href="https://dataful.in" class="logo" style="text-align:center;"><img src="./logo.png" alt="Dataful"></a>
+            <div style="text-align: right;">
+                <button class="mono btn-outline" style="padding: 10px 20px; font-size: 0.8rem; cursor: pointer;" onclick="exitAdmin()">EXIT</button>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="form-card">
+                <h3 style="margin-top: 0; font-size: 2.5rem; margin-bottom: 2.5rem;">Initialize New Poll</h3>
+                <div class="form-group"><span class="label-tech">REVEAL_DATE_TARGET</span><input type="date" id="poll-date"></div>
+                <div class="form-group"><span class="label-tech">PRIMARY_INQUIRY</span><textarea id="poll-question"></textarea></div>
+                
+                <div class="form-group">
+                    <span class="label-tech">ARCHITECTURAL_OPTIONS (4 REQUIRED)</span>
+                    <div id="options-container">
+                        <div class="options-grid"><input type="text" placeholder="LABEL 1" class="opt-label"><input type="checkbox" class="opt-correct"></div>
+                        <div class="options-grid"><input type="text" placeholder="LABEL 2" class="opt-label"><input type="checkbox" class="opt-correct"></div>
+                        <div class="options-grid"><input type="text" placeholder="LABEL 3" class="opt-label"><input type="checkbox" class="opt-correct"></div>
+                        <div class="options-grid"><input type="text" placeholder="LABEL 4" class="opt-label"><input type="checkbox" class="opt-correct"></div>
+                    </div>
+                </div>
+
+                <div class="form-group"><span class="label-tech">DECODED_RATIONALE (HTML)</span><textarea id="poll-explanation"></textarea></div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <div class="form-group"><span class="label-tech">DATAFUL_ID</span><input type="text" id="ds-id"></div>
+                    <div class="form-group"><span class="label-tech">DATASET_TITLE</span><input type="text" id="ds-title"></div>
+                </div>
+                <div class="form-group"><span class="label-tech">SOURCE_LINK_URI</span><input type="url" id="ds-link"></div>
+
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-primary" style="flex: 2; padding: 1.5rem;" onclick="saveAdminPoll()">COMMIT_TO_SCHEDULE</button>
+                    <button class="btn btn-outline mono" style="flex: 1;" onclick="showSyncCode()">GENERATE SYNC CODE</button>
+                </div>
+            </div>
+
+            <div class="schedule-list">
+                <h3 style="margin-top: 0; display: flex; align-items: center; justify-content: space-between;">
+                    Weekly Schedule <span id="schedule-count" class="mono" style="font-size:0.8rem; background:var(--text-main); color:white; padding:4px 8px;">0</span>
+                </h3>
+                <div id="polls-display"></div>
+            </div>
+
+        </div>
+    </template>
+
+    <script id="poll-data">
+        // Edge Worker mock payload
+        window.POLL_SCHEDULE = [
+            {
+                date: "2026-04-09",
+                question: "Which Indian state has the highest percentage of forest cover relative to its area?",
+                options: [
+                    { label: "Mizoram", isCorrect: true },
+                    { label: "Arunachal Pradesh", isCorrect: false },
+                    { label: "Meghalaya", isCorrect: false },
+                    { label: "Nagaland", isCorrect: false }
+                ],
+                explanation: "As per the latest <strong>India State of Forest Report (ISFR) 2021</strong>, Mizoram has the highest forest cover (84.53%).",
+                dataset: { id: "801", title: "ISFR 2021", link: "https://dataful.in/datasets/isfr-2021/" }
+            }
+        ];
+    </script>
+
+    <script>
+        // --- Core Application Router ---
+        let redirectTimer = null;
+        let redirectSeconds = 30;
+
+        function initApp() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const isAdminMode = urlParams.get('admin_mode') === 'true' && window.location.hash === '#auth';
+            
+            // Generate UUID Identity if missing
+            if(!localStorage.getItem('df_uuid')) {
+                localStorage.setItem('df_uuid', 'df_' + Math.random().toString(36).substring(2, 10));
+            }
+
+            if (isAdminMode) {
+                mountTemplate('tpl-auth-view');
+                if(sessionStorage.getItem('df_admin_jwt')) mountAdmin();
+            } else {
+                mountUser();
+            }
+        }
+
+        function mountTemplate(id) {
+            const root = document.getElementById('app-root');
+            root.innerHTML = '';
+            root.appendChild(document.getElementById(id).content.cloneNode(true));
+        }
+
+        // --- USER MODULE LOGIC ---
+        function mountUser() {
+            mountTemplate('tpl-user-view');
+            const nowStr = new Date().toISOString().split('T')[0];
+            const urlParams = new URLSearchParams(window.location.search);
+            const viewDate = urlParams.get('date');
+            const userChoice = urlParams.get('choice');
+
+            let schedule = JSON.parse(localStorage.getItem('poll_schedule_local')) || window.POLL_SCHEDULE;
+            const releasedPolls = schedule.filter(p => p.date <= nowStr).sort((a,b) => b.date.localeCompare(a.date));
+            const activePoll = viewDate ? schedule.find(p => p.date === viewDate) : releasedPolls[0];
+
+            if (activePoll) {
+                const dateLabel = new Date(activePoll.date).toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' }).toUpperCase();
+                document.getElementById('poll-label').innerText = `[ POLL_REVEAL: ${dateLabel} ]`;
+                document.getElementById('active-q').innerHTML = activePoll.question;
+                
+                document.getElementById('dataset-id').innerText = `DATAFUL_ID: ${activePoll.dataset.id}`;
+                document.getElementById('dataset-title').innerText = activePoll.dataset.title;
+                document.getElementById('dataset-link').href = activePoll.dataset.link;
+
+                const optsWrap = document.getElementById('options-list');
+                activePoll.options.forEach(opt => {
+                    const isUser = userChoice && decodeURIComponent(userChoice) === opt.label;
+                    const div = document.createElement('div');
+                    div.className = `option-figure ${opt.isCorrect ? 'correct' : ''} ${isUser ? 'user-choice' : ''}`;
+                    div.innerHTML = `<div class="option-content">${opt.label}</div>`;
+                    optsWrap.appendChild(div);
+                });
+
+                const past = releasedPolls.filter(p => p.date !== activePoll.date);
+                if (past.length === 0) {
+                    document.getElementById('archives-grid').innerHTML = '<div class="mono" style="opacity:0.5;">(NO HISTORICAL DATA)</div>';
+                } else {
+                    past.forEach(p => {
+                        const a = document.createElement('a'); a.className = 'archive-card'; a.href = `?date=${p.date}`;
+                        a.innerHTML = `<span class="mono" style="font-size:0.6rem; color:var(--brand-primary);">${p.date}</span><div style="font-weight:700; margin-top:5px;">${p.question}</div>`;
+                        document.getElementById('archives-grid').appendChild(a);
+                    });
+                }
+                
+                trackStreak(userChoice, activePoll);
+
+                if (!viewDate) {
+                    startRedirect();
+                } else {
+                    document.getElementById('redirect-pill').style.display = 'none';
+                }
+            }
+            setInterval(updateUserTimer, 1000);
+        }
+
+        function trackStreak(choice, poll) {
+            let streakData = JSON.parse(localStorage.getItem('df_streak') || '{"count": 0, "last": null}');
+            if (choice) {
+                const correctOpt = poll.options.find(o => o.isCorrect);
+                if (correctOpt && choice === correctOpt.label && streakData.last !== poll.date) {
+                    streakData.count++;
+                    streakData.last = poll.date;
+                    localStorage.setItem('df_streak', JSON.stringify(streakData));
+                }
+            }
+            if(streakData.count > 0) {
+                document.getElementById('nav-streak').style.display = 'block';
+                document.getElementById('streak-val').innerText = streakData.count;
+            }
+        }
+
+        function startRedirect() {
+            redirectTimer = setInterval(() => {
+                redirectSeconds--;
+                document.getElementById('timer-val').innerText = redirectSeconds;
+                if (redirectSeconds <= 0) {
+                    clearInterval(redirectTimer);
+                    let ref = document.referrer || "";
+                    if (ref.includes(window.location.hostname)) {
+                        window.location.href = "https://dataful.in";
+                    } else if (window.history.length > 1) {
+                        window.history.back();
+                    } else {
+                        window.location.href = "https://dataful.in";
+                    }
+                }
+            }, 1000);
+        }
+        function cancelRedirect() { clearInterval(redirectTimer); document.getElementById('redirect-pill').style.display = 'none'; }
+
+        function updateUserTimer() {
+            const now = new Date(); const target = new Date(); target.setHours(14, 0, 0, 0);
+            if (now >= target) target.setDate(target.getDate() + 1);
+            const diff = target - now;
+            
+            // Bug Fix: Reload page exactly when timer rolls over to ensure active poll is synced
+            if (diff <= 1000 && diff >= 0) window.location.reload(); 
+
+            const tEl = document.getElementById('next-timer');
+            if(tEl) tEl.innerText = [Math.floor(diff/3600000), Math.floor((diff%3600000)/60000), Math.floor((diff%60000)/1000)].map(v => v.toString().padStart(2, '0')).join(':');
+        }
+
+        // --- ADMIN MODULE LOGIC ---
+        function verifyShadowToken() {
+            if (document.getElementById('admin-pass-input').value === 'dataful2026') {
+                sessionStorage.setItem('df_admin_jwt', 'shadow_token_validated');
+                mountAdmin();
+            } else alert('Invalid Credentials');
+        }
+
+        function mountAdmin() {
+            mountTemplate('tpl-admin-view');
+            updateAdminDashboard();
+        }
+
+        function exitAdmin() {
+            sessionStorage.removeItem('df_admin_jwt');
+            window.location.href = window.location.pathname; // strip params to load user view
+        }
+
+        function saveAdminPoll() {
+            const d = {
+                date: document.getElementById('poll-date').value,
+                question: document.getElementById('poll-question').value,
+                explanation: document.getElementById('poll-explanation').value,
+                options: Array.from(document.querySelectorAll('.options-grid')).map(r => ({
+                    label: r.querySelector('.opt-label').value.trim(),
+                    isCorrect: r.querySelector('.opt-correct').checked
+                })),
+                dataset: {
+                    id: document.getElementById('ds-id').value,
+                    title: document.getElementById('ds-title').value,
+                    link: document.getElementById('ds-link').value
+                }
+            };
+            if(!d.date || !d.question || d.options.filter(o=>o.isCorrect).length !== 1) return alert("Validation Failed");
+            
+            let sched = JSON.parse(localStorage.getItem('poll_schedule_local')) || window.POLL_SCHEDULE;
+            sched = sched.filter(p => p.date !== d.date);
+            sched.push(d);
+            sched.sort((a,b) => a.date.localeCompare(b.date));
+            localStorage.setItem('poll_schedule_local', JSON.stringify(sched));
+            updateAdminDashboard();
+            resetAdminForm();
+            alert("Saved Sequence");
+        }
+
+        function resetAdminForm() {
+            document.getElementById('poll-date').value = '';
+            document.getElementById('poll-question').value = '';
+            document.getElementById('poll-explanation').value = '';
+            document.getElementById('ds-id').value = '';
+            document.getElementById('ds-title').value = '';
+            document.getElementById('ds-link').value = '';
+            document.querySelectorAll('.opt-label').forEach(el => el.value = '');
+            document.querySelectorAll('.opt-correct').forEach(el => el.checked = false);
+        }
+
+        function updateAdminDashboard() {
+            const sched = JSON.parse(localStorage.getItem('poll_schedule_local')) || window.POLL_SCHEDULE;
+            document.getElementById('schedule-count').innerText = sched.length;
+            const container = document.getElementById('polls-display');
+            container.innerHTML = sched.map((p,i) => `
+                <div class="poll-item">
+                    <span class="date">${p.date}</span>
+                    <span class="delete-btn" onclick="deleteAdminPoll(${i})">🗑️</span>
+                    <div class="q">${p.question}</div>
+                </div>
+            `).join('');
+        }
+
+        function showSyncCode() {
+            let sched = JSON.parse(localStorage.getItem('poll_schedule_local')) || window.POLL_SCHEDULE;
+            const codeStr = JSON.stringify(sched, null, 4);
+            const output = `Copy the array below and paste it into the <script id="poll-data"> block replacing window.POLL_SCHEDULE:\n\n${codeStr}`;
+            // Output to console and prompt to copy
+            console.log(output);
+            prompt("COPY YOUR MASTER SCHEDULE CODE:", codeStr);
+        }
+
+        function deleteAdminPoll(idx) {
+            let sched = JSON.parse(localStorage.getItem('poll_schedule_local')) || window.POLL_SCHEDULE;
+            sched.splice(idx, 1);
+            localStorage.setItem('poll_schedule_local', JSON.stringify(sched));
+            updateAdminDashboard();
+        }
+
+        // Start App
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
