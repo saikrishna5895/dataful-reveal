@@ -64,7 +64,9 @@
             background: white; margin-bottom: 1rem; position: relative; transition: 0.3s;
         }
         .option-content { font-size: 1.4rem; font-weight: 600; flex-grow: 1; }
-        .option-figure.correct { background: var(--brand-primary); color: white; border-color: var(--brand-primary); box-shadow: 0 10px 40px rgba(155, 0, 71, 0.3); }
+        .option-figure.correct { background: #15803d; color: white; border-color: #15803d; box-shadow: 0 10px 30px rgba(21, 128, 61, 0.2); }
+        .option-figure.incorrect.user-choice { background: #dc2626; color: white; border-color: #dc2626; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.2); }
+
         .option-figure.user-choice::after {
             content: "[ YOUR VOTE ]"; font-family: 'Source Code Pro', monospace;
             font-size: 0.65rem; font-weight: 900; margin-left: 1rem; padding: 2px 8px;
@@ -125,7 +127,7 @@
         <header class="user-header">
             <a href="https://dataful.in" class="logo"><img src="./logo.png" alt="Dataful"></a>
             <div class="header-right">
-                <div id="nav-streak" class="mono" style="display:none; margin-bottom: 4px;">💎 STREAK: <span id="streak-val">0</span></div>
+                <div id="nav-streak" class="mono" style="margin-bottom: 4px;">🎯 STREAK: <span id="streak-val">0</span></div>
                 <div class="header-timer">[ NEXT_REVEAL: <span id="next-timer">00:00:00</span> ]</div>
             </div>
         </header>
@@ -310,7 +312,7 @@
                 activePoll.options.forEach(opt => {
                     const isUser = userChoice && decodeURIComponent(userChoice).trim().toLowerCase() === opt.label.trim().toLowerCase();
                     const div = document.createElement('div');
-                    div.className = `option-figure ${opt.isCorrect ? 'correct' : ''} ${isUser ? 'user-choice' : ''}`;
+                    div.className = `option-figure ${opt.isCorrect ? 'correct' : ''} ${isUser ? 'user-choice' : ''} ${(!opt.isCorrect && isUser) ? 'incorrect' : ''}`;
                     div.innerHTML = `<div class="option-content">${opt.label}</div>`;
                     optsWrap.appendChild(div);
                 });
@@ -326,7 +328,7 @@
                     });
                 }
                 
-                trackStreak(userChoice, activePoll);
+                trackStreak(userChoice ? decodeURIComponent(userChoice) : null, activePoll);
 
                 if (!viewDate) {
                     startRedirect();
@@ -341,16 +343,18 @@
             let streakData = JSON.parse(localStorage.getItem('df_streak') || '{"count": 0, "last": null}');
             if (choice) {
                 const correctOpt = poll.options.find(o => o.isCorrect);
-                if (correctOpt && choice === correctOpt.label && streakData.last !== poll.date) {
+                if (correctOpt && choice.trim().toLowerCase() === correctOpt.label.trim().toLowerCase() && streakData.last !== poll.date) {
                     streakData.count++;
+                    streakData.last = poll.date;
+                    localStorage.setItem('df_streak', JSON.stringify(streakData));
+                } else if (streakData.last !== poll.date) {
+                    // Reset streak if wrong option selected on a new day
+                    streakData.count = 0;
                     streakData.last = poll.date;
                     localStorage.setItem('df_streak', JSON.stringify(streakData));
                 }
             }
-            if(streakData.count > 0) {
-                document.getElementById('nav-streak').style.display = 'block';
-                document.getElementById('streak-val').innerText = streakData.count;
-            }
+            document.getElementById('streak-val').innerText = streakData.count;
         }
 
         function startRedirect() {
