@@ -231,16 +231,28 @@
         // Edge Worker mock payload
         window.POLL_SCHEDULE = [
             {
-                date: "2026-04-09",
-                question: "Which Indian state has the highest percentage of forest cover relative to its area?",
-                options: [
-                    { label: "Mizoram", isCorrect: true },
-                    { label: "Arunachal Pradesh", isCorrect: false },
-                    { label: "Meghalaya", isCorrect: false },
-                    { label: "Nagaland", isCorrect: false }
+                "date": "2026-04-09",
+                "question": "India is the world's largest producer of milk. Approximately how much milk did India produce in 2024-25? (in Million tonnes)\n",
+                "explanation": "India is the largest diary producer in the world",
+                "options": [
+                    { "label": "90", "isCorrect": false },
+                    { "label": "190", "isCorrect": false },
+                    { "label": "250", "isCorrect": true },
+                    { "label": "330", "isCorrect": false }
                 ],
-                explanation: "As per the latest <strong>India State of Forest Report (ISFR) 2021</strong>, Mizoram has the highest forest cover (84.53%).",
-                dataset: { id: "801", title: "ISFR 2021", link: "https://dataful.in/datasets/isfr-2021/" }
+                "dataset": { "id": "19171", "title": "Year and State wise Milk Production in India", "link": "https://dataful.in/datasets/19171/" }
+            },
+            {
+                "date": "2026-04-10",
+                "question": "India has the largest postal network in the world. How many post offices does India have? (in 2023-24, rounded off to nearest number)",
+                "explanation": "India has the biggest postal network in the world.",
+                "options": [
+                    { "label": "110000", "isCorrect": false },
+                    { "label": "137000", "isCorrect": false },
+                    { "label": "159000", "isCorrect": false },
+                    { "label": "165000", "isCorrect": true }
+                ],
+                "dataset": { "id": "673", "title": "All India and Year-wise General statistics of Post Offices", "link": "https://dataful.in/datasets/673/" }
             }
         ];
     </script>
