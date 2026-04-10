@@ -66,6 +66,7 @@
         .option-content { font-size: 1.4rem; font-weight: 600; flex-grow: 1; }
         .option-figure.correct { background: #15803d; color: white; border-color: #15803d; box-shadow: 0 10px 30px rgba(21, 128, 61, 0.2); }
         .option-figure.incorrect.user-choice { background: #dc2626; color: white; border-color: #dc2626; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.2); }
+        .option-figure.unvoted-hover:hover { border-color: var(--brand-primary); transform: translateX(5px); background: rgba(155, 0, 71, 0.05); cursor: pointer; }
 
         .option-figure.user-choice::after {
             content: "[ YOUR VOTE ]"; font-family: 'Source Code Pro', monospace;
@@ -139,7 +140,9 @@
                 
                 <div id="options-list" class="poll-options"></div>
 
-                <div class="dataset-ref" style="margin-top: 2rem;">
+                <div id="explanation-box" class="explanation-box" style="display:none;"></div>
+
+                <div id="dataset-container" class="dataset-ref" style="margin-top: 2rem; display:none;">
                     <div class="mono" id="dataset-id" style="font-size: 0.6rem; color: var(--text-muted); margin-bottom: 5px;">DATAFUL_ID: ...</div>
                     <h3 id="dataset-title" style="font-size: 1.5rem; margin-bottom: 0.5rem;">...</h3>
                     <a id="dataset-link" href="#" target="_blank" class="dataset-link">VIEW_SOURCE →</a>
@@ -321,10 +324,38 @@
                 document.getElementById('dataset-link').href = activePoll.dataset.link;
 
                 const optsWrap = document.getElementById('options-list');
+                const hasVoted = !!userChoice;
+                
+                if (!hasVoted) {
+                    const promptEl = document.createElement('div');
+                    promptEl.className = 'mono';
+                    promptEl.style.color = 'var(--brand-primary)';
+                    promptEl.style.marginBottom = '1rem';
+                    promptEl.style.fontWeight = '900';
+                    promptEl.innerHTML = '⚠️ ACTION REQUIRED: CHOOSE AN OPTION BELOW TO REVEAL METRICS';
+                    optsWrap.parentNode.insertBefore(promptEl, optsWrap);
+                } else {
+                    document.getElementById('dataset-container').style.display = 'block';
+                    const expBox = document.getElementById('explanation-box');
+                    if (activePoll.explanation) {
+                        expBox.innerHTML = activePoll.explanation;
+                        expBox.style.display = 'block';
+                    }
+                }
+
                 activePoll.options.forEach(opt => {
-                    const isUser = userChoice && decodeURIComponent(userChoice).trim().toLowerCase() === opt.label.trim().toLowerCase();
                     const div = document.createElement('div');
-                    div.className = `option-figure ${opt.isCorrect ? 'correct' : ''} ${isUser ? 'user-choice' : ''} ${(!opt.isCorrect && isUser) ? 'incorrect' : ''}`;
+                    if (!hasVoted) {
+                        div.className = `option-figure unvoted-hover`;
+                        div.onclick = function() {
+                            const newUrl = new URL(window.location);
+                            newUrl.searchParams.set('choice', opt.label);
+                            window.location.href = newUrl.toString();
+                        };
+                    } else {
+                        const isUser = decodeURIComponent(userChoice).trim().toLowerCase() === opt.label.trim().toLowerCase();
+                        div.className = `option-figure ${opt.isCorrect ? 'correct' : ''} ${isUser ? 'user-choice' : ''} ${(!opt.isCorrect && isUser) ? 'incorrect' : ''}`;
+                    }
                     div.innerHTML = `<div class="option-content">${opt.label}</div>`;
                     optsWrap.appendChild(div);
                 });
@@ -342,7 +373,7 @@
                 
                 trackStreak(userChoice ? decodeURIComponent(userChoice) : null, activePoll);
 
-                if (!viewDate) {
+                if (!viewDate && hasVoted) {
                     startRedirect();
                 } else {
                     document.getElementById('redirect-pill').style.display = 'none';
