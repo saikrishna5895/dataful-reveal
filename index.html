@@ -85,9 +85,10 @@
         
         .redirect-pill {
             position: fixed; bottom: 2rem; right: 2rem; background: white; border: 2px solid var(--text-main);
-            padding: 1.5rem; z-index: 1000; box-shadow: 10px 10px 0 rgba(0,0,0,0.05); max-width: 280px;
+            padding: 1.5rem; z-index: 1000; box-shadow: 10px 10px 0 rgba(0,0,0,0.05); max-width: 320px;
         }
-        .btn-abort { background: none; border: 1px solid var(--text-muted); padding: 4px 8px; font-family: monospace; cursor: pointer; margin-top: 10px; width: 100%; }
+        .btn-abort { background: none; border: 1px solid var(--text-muted); font-family: monospace; cursor: pointer; width: 100%; transition: 0.3s;}
+        .btn-abort:hover { background: var(--bg-canvas); }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .visible { animation: fadeIn 0.8s var(--transition-sharp) forwards; }
@@ -156,7 +157,10 @@
         <div id="redirect-pill" class="redirect-pill mono">
             <div style="font-weight:900; color:var(--brand-primary);">REDIRECTION_IN_PROGRESS</div>
             <div style="margin: 8px 0;">AUTO_REDIRECTING IN <span id="timer-val" style="font-weight:900;">30</span>S</div>
-            <button onclick="cancelRedirect()" class="btn-abort mono">STOP_REDIRECTION</button>
+            <div style="display:flex; gap: 8px; margin-top: 12px;">
+                <button onclick="executeRedirect()" class="btn-primary mono" style="flex:1; padding: 6px; border:none;">REDIRECT_NOW</button>
+                <button onclick="cancelRedirect()" class="btn-abort mono" style="flex:1; padding: 6px;">STOP_REDIRECTION</button>
+            </div>
         </div>
     </template>
 
@@ -292,7 +296,7 @@
 
                 const optsWrap = document.getElementById('options-list');
                 activePoll.options.forEach(opt => {
-                    const isUser = userChoice && decodeURIComponent(userChoice) === opt.label;
+                    const isUser = userChoice && decodeURIComponent(userChoice).trim().toLowerCase() === opt.label.trim().toLowerCase();
                     const div = document.createElement('div');
                     div.className = `option-figure ${opt.isCorrect ? 'correct' : ''} ${isUser ? 'user-choice' : ''}`;
                     div.innerHTML = `<div class="option-content">${opt.label}</div>`;
@@ -342,18 +346,26 @@
                 redirectSeconds--;
                 document.getElementById('timer-val').innerText = redirectSeconds;
                 if (redirectSeconds <= 0) {
-                    clearInterval(redirectTimer);
-                    let ref = document.referrer || "";
-                    if (ref.includes(window.location.hostname)) {
-                        window.location.href = "https://dataful.in";
-                    } else if (window.history.length > 1) {
-                        window.history.back();
-                    } else {
-                        window.location.href = "https://dataful.in";
-                    }
+                    executeRedirect();
                 }
             }, 1000);
         }
+
+        function executeRedirect() {
+            clearInterval(redirectTimer);
+            let ref = document.referrer || "";
+            if (ref.includes(window.location.hostname)) {
+                window.location.href = "https://dataful.in";
+            } else if (ref.includes("linkedin.com")) {
+                window.close(); // Ask browser to close this new tab and return to previous
+                setTimeout(() => { window.location.href = ref; }, 500); // Fallback to raw URL
+            } else if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = "https://www.linkedin.com/company/dataful/";
+            }
+        }
+
         function cancelRedirect() { clearInterval(redirectTimer); document.getElementById('redirect-pill').style.display = 'none'; }
 
         function updateUserTimer() {
