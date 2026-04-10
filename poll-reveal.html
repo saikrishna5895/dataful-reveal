@@ -290,16 +290,28 @@
         // --- USER MODULE LOGIC ---
         function mountUser() {
             mountTemplate('tpl-user-view');
-            const nowStr = new Date().toISOString().split('T')[0];
             const urlParams = new URLSearchParams(window.location.search);
             const viewDate = urlParams.get('date');
             const userChoice = urlParams.get('choice');
 
             let schedule = JSON.parse(localStorage.getItem('poll_schedule_local')) || window.POLL_SCHEDULE;
-            const releasedPolls = schedule.filter(p => p.date <= nowStr).sort((a,b) => b.date.localeCompare(a.date));
+            const now = new Date();
+            
+            // Release condition: Local Time must be past 2:00 PM (14:00) on the scheduled date.
+            const releasedPolls = schedule.filter(p => {
+                const pts = p.date.split('-');
+                const releaseObj = new Date(pts[0], pts[1] - 1, pts[2], 14, 0, 0, 0);
+                return now >= releaseObj;
+            }).sort((a,b) => b.date.localeCompare(a.date));
+            
             const activePoll = viewDate ? schedule.find(p => p.date === viewDate) : releasedPolls[0];
 
-            if (activePoll) {
+            if (!activePoll) {
+                document.getElementById('poll-label').innerText = `[ DATA_LOCKED ]`;
+                document.getElementById('active-q').innerHTML = "The next Dataful Reveal will unlock at exactly 2:00 PM.";
+                document.getElementById('dataset-title').innerText = "Source metrics encypted until launch window.";
+                document.getElementById('redirect-pill').style.display = 'none';
+            } else {
                 const dateLabel = new Date(activePoll.date).toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' }).toUpperCase();
                 document.getElementById('poll-label').innerText = `[ POLL_REVEAL: ${dateLabel} ]`;
                 document.getElementById('active-q').innerHTML = activePoll.question;
