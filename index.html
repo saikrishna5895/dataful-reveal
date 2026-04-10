@@ -104,12 +104,14 @@
         .schedule-list { background: white; padding: 2rem; border: 1px solid var(--border-tech); }
         .form-group { margin-bottom: 2rem; }
         .label-tech { display: block; font-family: 'Source Code Pro', monospace; font-size: 0.65rem; font-weight: 900; margin-bottom: 0.8rem; color: var(--text-main); text-transform: uppercase; }
-        .options-grid { display: grid; grid-template-columns: 1fr 50px; gap: 15px; align-items: center; margin-bottom: 15px; }
-        .opt-correct { width: 20px; height: 20px; }
+        .options-grid { display: grid; grid-template-columns: 1fr 60px 40px; gap: 10px; align-items: center; margin-bottom: 15px; }
+        .opt-correct { width: 20px; height: 20px; justify-self: center;}
         .poll-item { border-bottom: 1px dotted var(--border-tech); padding: 1.5rem 0; position: relative; }
         .poll-item .date { font-family: 'Source Code Pro', monospace; font-weight: 900; color: var(--brand-primary); font-size: 0.7rem; }
         .poll-item .q { font-size: 1.1rem; margin-top: 5px; font-weight: 700; }
-        .delete-btn { position: absolute; top: 1.5rem; right: 0; cursor: pointer; opacity: 0.5; }
+        .poll-item-actions { position: absolute; top: 1.5rem; right: 0; display:flex; gap:10px; }
+        .action-btn { cursor: pointer; opacity: 0.5; font-size: 0.8rem; border:none; background:none;}
+        .action-btn:hover { opacity: 1; }
 
         .auth-overlay {
             position: fixed; inset: 0; background: var(--bg-canvas); z-index: 5000;
@@ -199,12 +201,12 @@
                 <div class="form-group"><span class="label-tech">PRIMARY_INQUIRY</span><textarea id="poll-question"></textarea></div>
                 
                 <div class="form-group">
-                    <span class="label-tech">ARCHITECTURAL_OPTIONS (4 REQUIRED)</span>
+                    <span class="label-tech">ARCHITECTURAL_OPTIONS & PERCENTAGES (%)</span>
                     <div id="options-container">
-                        <div class="options-grid"><input type="text" placeholder="LABEL 1" class="opt-label"><input type="checkbox" class="opt-correct"></div>
-                        <div class="options-grid"><input type="text" placeholder="LABEL 2" class="opt-label"><input type="checkbox" class="opt-correct"></div>
-                        <div class="options-grid"><input type="text" placeholder="LABEL 3" class="opt-label"><input type="checkbox" class="opt-correct"></div>
-                        <div class="options-grid"><input type="text" placeholder="LABEL 4" class="opt-label"><input type="checkbox" class="opt-correct"></div>
+                        <div class="options-grid"><input type="text" placeholder="LABEL" class="opt-label"><input type="number" placeholder="%" class="opt-pct" min="0" max="100"><input type="checkbox" class="opt-correct"></div>
+                        <div class="options-grid"><input type="text" placeholder="LABEL" class="opt-label"><input type="number" placeholder="%" class="opt-pct" min="0" max="100"><input type="checkbox" class="opt-correct"></div>
+                        <div class="options-grid"><input type="text" placeholder="LABEL" class="opt-label"><input type="number" placeholder="%" class="opt-pct" min="0" max="100"><input type="checkbox" class="opt-correct"></div>
+                        <div class="options-grid"><input type="text" placeholder="LABEL" class="opt-label"><input type="number" placeholder="%" class="opt-pct" min="0" max="100"><input type="checkbox" class="opt-correct"></div>
                     </div>
                 </div>
 
@@ -217,7 +219,8 @@
                 <div class="form-group"><span class="label-tech">SOURCE_LINK_URI</span><input type="url" id="ds-link"></div>
 
                 <div style="display: flex; gap: 1rem;">
-                    <button class="btn btn-primary" style="flex: 2; padding: 1.5rem;" onclick="saveAdminPoll()">COMMIT_TO_SCHEDULE</button>
+                    <button id="btn-save-poll" class="btn btn-primary" style="flex: 2; padding: 1.5rem;" onclick="saveAdminPoll()">COMMIT_TO_SCHEDULE</button>
+                    <button id="btn-cancel-edit" class="btn btn-outline" style="flex: 1; padding: 1.5rem; display:none;" onclick="resetAdminForm()">CANCEL EDIT</button>
                     <button class="btn btn-outline mono" style="flex: 1;" onclick="showSyncCode()">GENERATE SYNC CODE</button>
                 </div>
             </div>
@@ -356,7 +359,9 @@
                         const isUser = decodeURIComponent(userChoice).trim().toLowerCase() === opt.label.trim().toLowerCase();
                         div.className = `option-figure ${opt.isCorrect ? 'correct' : ''} ${isUser ? 'user-choice' : ''} ${(!opt.isCorrect && isUser) ? 'incorrect' : ''}`;
                     }
-                    div.innerHTML = `<div class="option-content">${opt.label}</div>`;
+                    
+                    const pctHtml = opt.pct ? `<div class="mono" style="font-size: 0.75rem; margin-top: 5px; opacity: 0.8; font-weight: 900;">${opt.pct}% OF VOTERS</div>` : '';
+                    div.innerHTML = `<div class="option-content">${opt.label} ${pctHtml}</div>`;
                     optsWrap.appendChild(div);
                 });
 
@@ -440,6 +445,8 @@
         }
 
         // --- ADMIN MODULE LOGIC ---
+        let editingPollIndex = null;
+
         function verifyShadowToken() {
             if (document.getElementById('admin-pass-input').value === 'dataful2026') {
                 sessionStorage.setItem('df_admin_jwt', 'shadow_token_validated');
@@ -464,6 +471,7 @@
                 explanation: document.getElementById('poll-explanation').value,
                 options: Array.from(document.querySelectorAll('.options-grid')).map(r => ({
                     label: r.querySelector('.opt-label').value.trim(),
+                    pct: r.querySelector('.opt-pct').value.trim(),
                     isCorrect: r.querySelector('.opt-correct').checked
                 })),
                 dataset: {
@@ -472,19 +480,28 @@
                     link: document.getElementById('ds-link').value
                 }
             };
-            if(!d.date || !d.question || d.options.filter(o=>o.isCorrect).length !== 1) return alert("Validation Failed");
+            if(!d.date || !d.question || d.options.filter(o=>o.isCorrect).length !== 1) return alert("Validation Failed. Data is incomplete or no correct option selected.");
             
             let sched = JSON.parse(localStorage.getItem('poll_schedule_local')) || window.POLL_SCHEDULE;
-            sched = sched.filter(p => p.date !== d.date);
-            sched.push(d);
+            
+            if (editingPollIndex !== null) {
+                sched[editingPollIndex] = d;
+            } else {
+                sched = sched.filter(p => p.date !== d.date); // overwrite duplicates natively if not explicitly editing
+                sched.push(d);
+            }
+            
             sched.sort((a,b) => a.date.localeCompare(b.date));
             localStorage.setItem('poll_schedule_local', JSON.stringify(sched));
             updateAdminDashboard();
             resetAdminForm();
-            alert("Saved Sequence");
+            alert("Sequence Committed Successfully");
         }
 
         function resetAdminForm() {
+            editingPollIndex = null;
+            document.getElementById('btn-save-poll').innerText = "COMMIT_TO_SCHEDULE";
+            document.getElementById('btn-cancel-edit').style.display = 'none';
             document.getElementById('poll-date').value = '';
             document.getElementById('poll-question').value = '';
             document.getElementById('poll-explanation').value = '';
@@ -492,7 +509,35 @@
             document.getElementById('ds-title').value = '';
             document.getElementById('ds-link').value = '';
             document.querySelectorAll('.opt-label').forEach(el => el.value = '');
+            document.querySelectorAll('.opt-pct').forEach(el => el.value = '');
             document.querySelectorAll('.opt-correct').forEach(el => el.checked = false);
+        }
+
+        function editAdminPoll(idx) {
+            let sched = JSON.parse(localStorage.getItem('poll_schedule_local')) || window.POLL_SCHEDULE;
+            const p = sched[idx];
+            if (!p) return;
+            
+            editingPollIndex = idx;
+            document.getElementById('btn-save-poll').innerText = "UPDATE EXPERIMENT";
+            document.getElementById('btn-cancel-edit').style.display = 'block';
+
+            document.getElementById('poll-date').value = p.date;
+            document.getElementById('poll-question').value = p.question;
+            document.getElementById('poll-explanation').value = p.explanation || '';
+            document.getElementById('ds-id').value = p.dataset.id;
+            document.getElementById('ds-title').value = p.dataset.title;
+            document.getElementById('ds-link').value = p.dataset.link;
+            
+            const rows = document.querySelectorAll('.options-grid');
+            p.options.forEach((opt, i) => {
+                if (rows[i]) {
+                    rows[i].querySelector('.opt-label').value = opt.label;
+                    rows[i].querySelector('.opt-pct').value = opt.pct || '';
+                    rows[i].querySelector('.opt-correct').checked = opt.isCorrect;
+                }
+            });
+            window.scrollTo(0,0);
         }
 
         function updateAdminDashboard() {
@@ -502,7 +547,10 @@
             container.innerHTML = sched.map((p,i) => `
                 <div class="poll-item">
                     <span class="date">${p.date}</span>
-                    <span class="delete-btn" onclick="deleteAdminPoll(${i})">🗑️</span>
+                    <div class="poll-item-actions">
+                        <button class="action-btn mono" onclick="editAdminPoll(${i})">✏️ EDIT</button>
+                        <button class="action-btn mono" onclick="deleteAdminPoll(${i})">🗑️ DEL</button>
+                    </div>
                     <div class="q">${p.question}</div>
                 </div>
             `).join('');
