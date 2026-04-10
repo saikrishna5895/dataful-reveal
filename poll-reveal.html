@@ -64,15 +64,7 @@
             background: white; margin-bottom: 1rem; position: relative; transition: 0.3s;
         }
         .option-content { font-size: 1.4rem; font-weight: 600; flex-grow: 1; }
-        .option-figure.correct { background: #15803d; color: white; border-color: #15803d; box-shadow: 0 10px 30px rgba(21, 128, 61, 0.2); }
-        .option-figure.incorrect.user-choice { background: #dc2626; color: white; border-color: #dc2626; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.2); }
-        .option-figure.unvoted-hover:hover { border-color: var(--brand-primary); transform: translateX(5px); background: rgba(155, 0, 71, 0.05); cursor: pointer; }
-
-        .option-figure.user-choice::after {
-            content: "[ YOUR VOTE ]"; font-family: 'Source Code Pro', monospace;
-            font-size: 0.65rem; font-weight: 900; margin-left: 1rem; padding: 2px 8px;
-            background: rgba(0,0,0,0.1); border-radius: 2px;
-        }
+        .option-figure.correct { background: var(--brand-primary); color: white; border-color: var(--brand-primary); box-shadow: 0 10px 40px rgba(155, 0, 71, 0.3); }
 
         .explanation-box { font-size: 1.3rem; max-width: 750px; margin: 3rem 0; line-height: 1.5; color: var(--text-main); }
         .explanation-box strong { color: var(--brand-primary); }
@@ -104,8 +96,8 @@
         .schedule-list { background: white; padding: 2rem; border: 1px solid var(--border-tech); }
         .form-group { margin-bottom: 2rem; }
         .label-tech { display: block; font-family: 'Source Code Pro', monospace; font-size: 0.65rem; font-weight: 900; margin-bottom: 0.8rem; color: var(--text-main); text-transform: uppercase; }
-        .options-grid { display: grid; grid-template-columns: 1fr 60px 40px; gap: 10px; align-items: center; margin-bottom: 15px; }
-        .opt-correct { width: 20px; height: 20px; justify-self: center;}
+        .options-grid { display: grid; grid-template-columns: 1fr 50px; gap: 15px; align-items: center; margin-bottom: 15px; }
+        .opt-correct { width: 20px; height: 20px; }
         .poll-item { border-bottom: 1px dotted var(--border-tech); padding: 1.5rem 0; position: relative; }
         .poll-item .date { font-family: 'Source Code Pro', monospace; font-weight: 900; color: var(--brand-primary); font-size: 0.7rem; }
         .poll-item .q { font-size: 1.1rem; margin-top: 5px; font-weight: 700; }
@@ -142,9 +134,9 @@
                 
                 <div id="options-list" class="poll-options"></div>
 
-                <div id="explanation-box" class="explanation-box" style="display:none;"></div>
+                <div id="explanation-box" class="explanation-box"></div>
 
-                <div id="dataset-container" class="dataset-ref" style="margin-top: 2rem; display:none;">
+                <div id="dataset-container" class="dataset-ref" style="margin-top: 2rem;">
                     <div class="mono" id="dataset-id" style="font-size: 0.6rem; color: var(--text-muted); margin-bottom: 5px;">DATAFUL_ID: ...</div>
                     <h3 id="dataset-title" style="font-size: 1.5rem; margin-bottom: 0.5rem;">...</h3>
                     <a id="dataset-link" href="#" target="_blank" class="dataset-link">VIEW_SOURCE →</a>
@@ -201,12 +193,12 @@
                 <div class="form-group"><span class="label-tech">PRIMARY_INQUIRY</span><textarea id="poll-question"></textarea></div>
                 
                 <div class="form-group">
-                    <span class="label-tech">ARCHITECTURAL_OPTIONS & PERCENTAGES (%)</span>
+                    <span class="label-tech">ARCHITECTURAL_OPTIONS (4 REQUIRED)</span>
                     <div id="options-container">
-                        <div class="options-grid"><input type="text" placeholder="LABEL" class="opt-label"><input type="number" placeholder="%" class="opt-pct" min="0" max="100"><input type="checkbox" class="opt-correct"></div>
-                        <div class="options-grid"><input type="text" placeholder="LABEL" class="opt-label"><input type="number" placeholder="%" class="opt-pct" min="0" max="100"><input type="checkbox" class="opt-correct"></div>
-                        <div class="options-grid"><input type="text" placeholder="LABEL" class="opt-label"><input type="number" placeholder="%" class="opt-pct" min="0" max="100"><input type="checkbox" class="opt-correct"></div>
-                        <div class="options-grid"><input type="text" placeholder="LABEL" class="opt-label"><input type="number" placeholder="%" class="opt-pct" min="0" max="100"><input type="checkbox" class="opt-correct"></div>
+                        <div class="options-grid"><input type="text" placeholder="LABEL 1" class="opt-label"><input type="checkbox" class="opt-correct"></div>
+                        <div class="options-grid"><input type="text" placeholder="LABEL 2" class="opt-label"><input type="checkbox" class="opt-correct"></div>
+                        <div class="options-grid"><input type="text" placeholder="LABEL 3" class="opt-label"><input type="checkbox" class="opt-correct"></div>
+                        <div class="options-grid"><input type="text" placeholder="LABEL 4" class="opt-label"><input type="checkbox" class="opt-correct"></div>
                     </div>
                 </div>
 
@@ -327,41 +319,20 @@
                 document.getElementById('dataset-link').href = activePoll.dataset.link;
 
                 const optsWrap = document.getElementById('options-list');
-                const hasVoted = !!userChoice;
                 
-                if (!hasVoted) {
-                    const promptEl = document.createElement('div');
-                    promptEl.className = 'mono';
-                    promptEl.style.color = 'var(--brand-primary)';
-                    promptEl.style.marginBottom = '1rem';
-                    promptEl.style.fontWeight = '900';
-                    promptEl.innerHTML = '⚠️ ACTION REQUIRED: CHOOSE AN OPTION BELOW TO REVEAL METRICS';
-                    optsWrap.parentNode.insertBefore(promptEl, optsWrap);
+                document.getElementById('dataset-container').style.display = 'block';
+                const expBox = document.getElementById('explanation-box');
+                if (activePoll.explanation) {
+                    expBox.innerHTML = activePoll.explanation;
+                    expBox.style.display = 'block';
                 } else {
-                    document.getElementById('dataset-container').style.display = 'block';
-                    const expBox = document.getElementById('explanation-box');
-                    if (activePoll.explanation) {
-                        expBox.innerHTML = activePoll.explanation;
-                        expBox.style.display = 'block';
-                    }
+                    expBox.style.display = 'none';
                 }
 
                 activePoll.options.forEach(opt => {
                     const div = document.createElement('div');
-                    if (!hasVoted) {
-                        div.className = `option-figure unvoted-hover`;
-                        div.onclick = function() {
-                            const newUrl = new URL(window.location);
-                            newUrl.searchParams.set('choice', opt.label);
-                            window.location.href = newUrl.toString();
-                        };
-                    } else {
-                        const isUser = decodeURIComponent(userChoice).trim().toLowerCase() === opt.label.trim().toLowerCase();
-                        div.className = `option-figure ${opt.isCorrect ? 'correct' : ''} ${isUser ? 'user-choice' : ''} ${(!opt.isCorrect && isUser) ? 'incorrect' : ''}`;
-                    }
-                    
-                    const pctHtml = opt.pct ? `<div class="mono" style="font-size: 0.75rem; margin-top: 5px; opacity: 0.8; font-weight: 900;">${opt.pct}% OF VOTERS</div>` : '';
-                    div.innerHTML = `<div class="option-content">${opt.label} ${pctHtml}</div>`;
+                    div.className = `option-figure ${opt.isCorrect ? 'correct' : ''}`;
+                    div.innerHTML = `<div class="option-content">${opt.label}</div>`;
                     optsWrap.appendChild(div);
                 });
 
@@ -378,7 +349,7 @@
                 
                 trackStreak(userChoice ? decodeURIComponent(userChoice) : null, activePoll);
 
-                if (!viewDate && hasVoted) {
+                if (!viewDate) {
                     startRedirect();
                 } else {
                     document.getElementById('redirect-pill').style.display = 'none';
@@ -471,7 +442,6 @@
                 explanation: document.getElementById('poll-explanation').value,
                 options: Array.from(document.querySelectorAll('.options-grid')).map(r => ({
                     label: r.querySelector('.opt-label').value.trim(),
-                    pct: r.querySelector('.opt-pct').value.trim(),
                     isCorrect: r.querySelector('.opt-correct').checked
                 })),
                 dataset: {
@@ -509,7 +479,6 @@
             document.getElementById('ds-title').value = '';
             document.getElementById('ds-link').value = '';
             document.querySelectorAll('.opt-label').forEach(el => el.value = '');
-            document.querySelectorAll('.opt-pct').forEach(el => el.value = '');
             document.querySelectorAll('.opt-correct').forEach(el => el.checked = false);
         }
 
@@ -533,7 +502,6 @@
             p.options.forEach((opt, i) => {
                 if (rows[i]) {
                     rows[i].querySelector('.opt-label').value = opt.label;
-                    rows[i].querySelector('.opt-pct').value = opt.pct || '';
                     rows[i].querySelector('.opt-correct').checked = opt.isCorrect;
                 }
             });
